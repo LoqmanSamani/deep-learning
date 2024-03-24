@@ -330,7 +330,7 @@ print(Y_test.shape)
 (1, 500)
 """
 
-"""
+
 model = NNClassification(
     print_cost=True,
     hidden_activation="relu",
@@ -349,7 +349,7 @@ model.nn_model(
     epochs=10000,
     alpha=0.01
 )
-"""
+
 
 """
 Number of Epochs: 10000, Learning Rate: 0.01, Number of Units in the Hidden Layer: 5
