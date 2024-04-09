@@ -332,7 +332,7 @@ class DeepFeedForward(object):
 
         return parameters
 
-    def model(self, X_train, Y_train, num_hidden_units, X_validation=None, Y_validation=None, X_test=None, Y_test=None, lambda_=0.0, num_epochs=10000, learning_rate=1e-4,):
+    def model(self, X_train, Y_train, num_hidden_units, X_validation=None, Y_validation=None, X_test=None, Y_test=None, lambda_=0.0, num_epochs=10000, learning_rate=1e-4):
 
         num_layer_units = self.layer_sizes(
             X=X_train,
@@ -352,59 +352,61 @@ class DeepFeedForward(object):
             print()
             print("___" * 40)
 
-            parameters_ = self.train(
-                X_train=X_train,
-                Y_train=Y_train,
-                X_validation=X_validation,
-                Y_validation=Y_validation,
-                X_test=X_test,
-                Y_test=Y_test,
-                parameters=parameters,
-                lambda_=lambda_,
-                hidden_activation=self.hidden_activation,
-                output_activation=self.output_activation,
-                num_epochs=num_epochs,
-                learning_rate=learning_rate,
-                print_cost=self.print_cost,
-                epsilon=self.epsilon,
-                sigma=self.sigma
-            )
+        parameters_ = self.train(
+            X_train=X_train,
+            Y_train=Y_train,
+            X_validation=X_validation,
+            Y_validation=Y_validation,
+            X_test=X_test,
+            Y_test=Y_test,
+            parameters=parameters,
+            lambda_=lambda_,
+            hidden_activation=self.hidden_activation,
+            output_activation=self.output_activation,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+            print_cost=self.print_cost,
+            epsilon=self.epsilon,
+            sigma=self.sigma
+        )
 
-            print()
+        print()
 
-            self.parameters = parameters_
+        self.parameters = parameters_
 
-            train_predicted = self.predict(
-                X=X_train,
+        train_predicted = self.predict(
+            X=X_train,
+            parameters=self.parameters,
+            hidden_activation=self.hidden_activation,
+            output_activation=self.output_activation
+        )
+        train_accuracy = self.accuracy(predicted=train_predicted, Y=Y_train)
+        self.train_predict = train_predicted
+        self.train_accuracy = train_accuracy
+
+        if X_validation is not None:
+            valid_predicted = self.predict(
+                X=X_validation,
                 parameters=self.parameters,
                 hidden_activation=self.hidden_activation,
                 output_activation=self.output_activation
             )
-            train_accuracy = self.accuracy(predicted=train_predicted, Y=Y_train)
-            self.train_predict = train_predicted
-            self.train_accuracy = train_accuracy
+            valid_accuracy = self.accuracy(predicted=valid_predicted, Y=Y_validation)
+            self.validation_predict = valid_predicted
+            self.validation_accuracy = valid_accuracy
 
-            if X_validation is not None:
-                valid_predicted = self.predict(
-                    X=X_validation,
-                    parameters=self.parameters,
-                    hidden_activation=self.hidden_activation,
-                    output_activation=self.output_activation
-                )
-                valid_accuracy = self.accuracy(predicted=valid_predicted, Y=Y_validation)
-                self.validation_predict = valid_predicted
-                self.validation_accuracy = valid_accuracy
+        if X_test is not None:
+            test_predicted = self.predict(
+                X=X_test,
+                parameters=self.parameters,
+                hidden_activation=self.hidden_activation,
+                output_activation=self.output_activation
+            )
+            test_accuracy = self.accuracy(predicted=test_predicted, Y=Y_test)
+            self.test_predict = test_predicted
+            self.test_accuracy = test_accuracy
 
-            if X_test is not None:
-                test_predicted = self.predict(
-                    X=X_test,
-                    parameters=self.parameters,
-                    hidden_activation=self.hidden_activation,
-                    output_activation=self.output_activation
-                )
-                test_accuracy = self.accuracy(predicted=test_predicted, Y=Y_test)
-                self.test_predict = test_predicted
-                self.test_accuracy = test_accuracy
+        if self.print_cost:
 
             print("__" * 20)
             print()
@@ -416,17 +418,17 @@ class DeepFeedForward(object):
             print()
             print("__" * 20)
 
-            if self.visualize_cost:
-                plt.plot(self.train_cost, label="Train Cost")
-                if X_validation is not None:
-                    plt.plot(self.validation_cost, label="Validation Cost")
-                if X_test is not None:
-                    plt.plot(self.test_cost, label="Test Cost")
-                plt.title("Epoch vs. Cost")
-                plt.xlabel(f"Epoch")
-                plt.ylabel("Cost")
-                plt.legend()
-                plt.show()
+        if self.visualize_cost:
+            plt.plot(self.train_cost, label="Train Cost")
+            if X_validation is not None:
+                plt.plot(self.validation_cost, label="Validation Cost")
+            if X_test is not None:
+                plt.plot(self.test_cost, label="Test Cost")
+            plt.title("Epoch vs. Cost")
+            plt.xlabel(f"Epoch")
+            plt.ylabel("Cost")
+            plt.legend()
+            plt.show()
 
 
 def load_2D_dataset():
