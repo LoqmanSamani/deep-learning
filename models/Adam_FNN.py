@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import sklearn.datasets
 import scipy.io
 import time
 import h5py
