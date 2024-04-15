@@ -1,14 +1,13 @@
 import tensorflow as tf
-import numpy as np
 import matplotlib.pyplot as plt
-import h5py
-import time
 from tensorflow.keras.initializers import GlorotNormal, HeNormal, VarianceScaling
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras.activations import relu, softmax
 from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.metrics import CategoricalAccuracy
 from tensorflow import GradientTape
+import h5py
+import time
 
 
 class ImageRecognition:
@@ -270,9 +269,9 @@ obj = ImageRecognition(
 obj.model(
     X_train=X_train,
     Y_train=Y_train,
-    num_hidden_units=[20, 10, 8],
+    num_hidden_units=[30, 20, 10],
     X_test=X_test,
     Y_test=Y_test,
-    num_epochs=400,
+    num_epochs=500,
     learning_rate=1e-4
 )
