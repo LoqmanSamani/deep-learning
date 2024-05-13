@@ -158,3 +158,183 @@ class Conv2DForward:
         return (X_conv, caches, W, b)
 
 
+
+
+
+class Conv2DBackward:
+    """
+    Class implementing backward propagation for a convolutional layer.
+
+    Methods:
+        zero_padding(X, padding):
+            Apply zero padding to the input.
+
+        backward_relu(dA, Z):
+            Compute the backward pass for the ReLU activation function.
+
+        conv_1_backward(Al, dAl_1, W, dZ, dW, db, step, nh, nw, nc, stride, f):
+            Compute gradients for a single convolution operation.
+
+        conv2d_backward(dAl, caches):
+            Perform backward propagation for the entire convolutional layer.
+    """
+    def __init__(self):
+        pass
+
+    def zero_padding(self, X, padding):
+        """
+        Apply zero padding to the input.
+
+        Args:
+            - X (numpy.ndarray): Input data of shape (m, n_H, n_W, n_C).
+            - padding (int): Number of padding columns or rows.
+
+        Returns:
+            - X_pad (numpy.ndarray): Padded input data of shape (m, n_H_pad, n_W_pad, n_C).
+        """
+
+        X_pad = np.pad(X, ((0, 0), (padding, padding), (padding, padding), (0, 0)), mode="constant", constant_values=(0, 0))
+
+        return X_pad
+
+    def backward_relu(self, dA, Z):
+        """
+        Compute the backward pass for the ReLU activation function.
+
+        Args:
+            - dA (numpy.ndarray): Gradient of the cost with respect to the post-activation values.
+            - Z (numpy.ndarray): Pre-activation output.
+
+        Returns:
+            - dZ (numpy.ndarray): Gradient of the cost with respect to Z.
+                """
+
+        dZ = np.array(dA, copy=True)
+        dZ[Z <= 0] = 0
+
+        return dZ
+
+    def conv_1_backward(self, Al, dAl_1, W, dZ, dW, db, step, nh, nw, nc, stride, f):
+        """
+        Compute gradients for a single convolution operation.
+
+        Args:
+            - Al (numpy.ndarray): Input slice to the convolution operation.
+            - dAl_1 (numpy.ndarray): Gradient of the cost with respect to the input Al.
+            - W (numpy.ndarray): Weights of the convolution operation.
+            - dZ (numpy.ndarray): Gradient of the cost with respect to the output Z.
+            - dW (numpy.ndarray): Gradient of the cost with respect to the weights W.
+            - db (numpy.ndarray): Gradient of the cost with respect to the biases.
+            - step (int): Step index.
+            - nh (int): Height of the output feature map.
+            - nw (int): Width of the output feature map.
+            - nc (int): Number of channels.
+            - stride (int): Stride of the convolution operation.
+            - f (int): Filter size.
+
+        Returns:
+            - tuple: Tuple containing gradients of the cost with respect to Al, W, and b.
+                """
+
+        for h in range(nh):
+            for w in range(nw):
+                for c in range(nc):
+                    v_start = h * stride
+                    v_end = v_start + f
+                    h_start = w * stride
+                    h_end = h_start + f
+
+                    a_slice = Al[v_start:v_end, h_start:h_end, :]
+
+                    dAl_1[v_start:v_end, h_start:h_end, :] += W[c, :, :, :] * dZ[step, h, w, c]
+                    dW[c, :, :, :] += a_slice * dZ[step, h, w, c]
+                    db[c, :, :, :] += dZ[step, h, w, c]
+
+        return (dAl_1, dW, db)
+
+    def conv2d_backward(self, dAl, caches):
+        """
+        Perform backward propagation for the entire convolutional layer.
+
+        Args:
+            - dAl (numpy.ndarray): Gradient of the cost with respect to the activations of the current layer.
+            - caches (tuple): Tuple of cache values from the forward pass. It contains:
+                - linear_cache (tuple): Tuple of values from the linear (convolutional) part of the forward pass.
+                    It includes:
+                        - X (numpy.ndarray): Input data of shape (m, n_H_prev, n_W_prev, n_C_prev).
+                        - W (numpy.ndarray): Weights of the convolutional operation of shape (f, f, n_C_prev, n_C).
+                        - b (numpy.ndarray): Biases of the convolutional operation of shape (1, 1, 1, n_C).
+                        - filters (int): Number of applied filters.
+                        - kernel_size (tuple): Size of the applied filters (f, f).
+                        - padding (int): Number of padding columns or rows.
+                        - strides (int): Number of strides.
+                        - layer (int): Layer number.
+                - activation_cache (numpy.ndarray): Activation values from the forward pass,
+                    which are the input to the activation function (ReLU) of shape (m, n_H, n_W, n_C).
+
+        Returns:
+            - tuple: Tuple containing gradients of the cost with respect to the activations, weights, and biases.
+                - dAl_1 (numpy.ndarray): Gradient of the cost with respect to the activations of the previous layer,
+                    of shape (m, n_H_prev, n_W_prev, n_C_prev).
+                - dW (numpy.ndarray): Gradient of the cost with respect to the weights of the convolutional layer,
+                    of shape (f, f, n_C_prev, n_C).
+                - db (numpy.ndarray): Gradient of the cost with respect to the biases of the convolutional layer,
+                    of shape (1, 1, 1, n_C).
+        """
+
+        (linear_cache, activation_cache) = caches
+        (X, W, b, filters, kernel_size, padding, strides, layer) = linear_cache
+
+        Z = activation_cache
+
+        dZ = self.backward_relu(
+            dA=dAl,
+            Z=Z
+        )
+
+        (m, nh_pre, nw_pre, nc_pre) = X.shape
+        (nc, f, f, nc_pre) = W.shape
+        (m, nh, nw, nc) = dZ.shape
+
+        dAl_1 = np.zeros(X.shape)
+        dW = np.zeros(W.shape)
+        db = np.zeros(b.shape)
+
+        # Pad X and dAl_1
+        X_pad = self.zero_padding(
+            X=X,
+            padding=padding
+        )
+        dAl_1_pad = self.zero_padding(
+            X=dAl_1,
+            padding=padding
+        )
+
+        for i in range(m):
+
+            x_pad = X_pad[i]
+            dal_1_pad = dAl_1_pad[i]
+
+            (dal_1_pad, dW, db) = self.conv_1_backward(
+                Al=x_pad,
+                dAl_1=dal_1_pad,
+                W=W,
+                dZ=dZ,
+                dW=dW,
+                db=db,
+                step=i,
+                nh=nh,
+                nw=nw,
+                nc=nc,
+                stride=strides,
+                f=f
+            )
+
+        # Remove padding from dAl_1_pad
+        dAl_1 = dAl_1_pad[:, padding:-padding, padding:-padding, :]
+        assert (dAl_1.shape == (m, nh_pre, nw_pre, nc_pre))
+
+        return (dAl_1, dW, db)
+
+
+
