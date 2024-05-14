@@ -338,3 +338,432 @@ class Conv2DBackward:
 
 
 
+
+
+
+class Pool2DForward:
+    """
+    This class implements 2D pooling operations, including both max pooling and average pooling.
+
+    Methods:
+
+        compute_output_size(nh_pre, nw_pre, nc_pre, f, stride):
+            Computes the output dimensions for the pooling operation.
+
+        pool_max_forward(A, f, stride):
+            Performs forward pass of max pooling operation.
+
+        pool_average_forward(A, f, stride):
+            Performs forward pass of average pooling operation.
+    """
+
+    def __init__(self):
+        """
+        Initialize the Pool2DForward class.
+        """
+        pass
+
+
+
+    def compute_output_size(self, nh_pre, nw_pre, nc_pre, f, stride):
+
+        """
+        Computes the dimensions of the output after applying the pooling operation.
+
+        Parameters:
+
+            - nh_pre (int): Height of the input volume.
+            - nw_pre (int): Width of the input volume.
+            - nc_pre (int): Number of channels in the input volume.
+            - f (int): Size of the pooling window.
+            - stride (int): Stride with which the pooling window moves.
+
+        Returns:
+            - tuple : A tuple (nh, nw, nc) representing the height, width, and number of channels of the output volume.
+        """
+
+        nh = int(1 + (nh_pre - f) / stride)
+        nw = int(1 + (nw_pre - f) / stride)
+        nc = nc_pre
+
+        return (nh, nw, nc)
+
+    def pool_max_forward(self, A, f, stride):
+        """
+        Performs the forward pass of the max pooling operation.
+
+        Parameters:
+
+            - A (numpy.ndarray): Input data of shape (m, nh_pre, nw_pre, nc_pre).
+            - f (int): Size of the pooling window.
+            - stride (int): Stride with which the pooling window moves.
+
+        Returns:
+
+            - tuple: A tuple (A_pool, cache) where A_pool is the output of the max pooling operation
+                     and cache contains the values needed for the backward pass.
+        """
+
+        (m, nh_pre, nw_pre, nc_pre) = A.shape
+
+        (nh, nw, nc) = self.compute_output_size(
+            nh_pre=nh_pre,
+            nw_pre=nw_pre,
+            nc_pre=nc_pre,
+            f=f,
+            stride=stride
+        )
+
+        A_pool = np.zeros((m, nh, nw, nc))
+
+        for i in range(m):
+
+            for h in range(nh):
+
+                v_start = h * stride
+                v_end = v_start + f
+
+                for w in range(nw):
+
+                    h_start = w * stride
+                    h_end = h_start + f
+
+                    for c in range(nc):
+                        a_slice = A[i, v_start:v_end, h_start:h_end, c]
+                        A_pool[i, h, w, c] = np.max(a_slice, axis=(0, 1))
+
+        cache = (A, f, stride)
+
+        return (A_pool, cache)
+
+    def pool_average_forward(self, A, f, stride):
+
+        """
+        Performs the forward pass of the average pooling operation.
+
+        Parameters:
+
+            - A (numpy.ndarray): Input data of shape (m, nh_pre, nw_pre, nc_pre).
+            - f (int): Size of the pooling window.
+            - stride (int): Stride with which the pooling window moves.
+
+        Returns:
+
+            - tuple: A tuple (A_pool, cache) where A_pool is the output of the average pooling operation
+                     and cache contains the values needed for the backward pass.
+        """
+
+        (m, nh_pre, nw_pre, nc_pre) = A.shape
+        (nh, nw, nc) = self.compute_output_size(
+            nh_pre=nh_pre,
+            nw_pre=nw_pre,
+            nc_pre=nc_pre,
+            f=f,
+            stride=stride
+        )
+
+        A_pool = np.zeros((m, nh, nw, nc))
+
+        for i in range(m):
+
+            for h in range(nh):
+
+                v_start = h * stride
+                v_end = v_start + f
+
+                for w in range(nw):
+
+                    h_start = w * stride
+                    h_end = h_start + f
+
+                    for c in range(nc):
+                        a_slice = A[i, v_start:v_end, h_start:h_end, c]
+                        A_pool[i, h, w, c] = np.mean(a_slice, axis=(0, 1))
+
+        cache = (A, f, stride)
+
+        return (A_pool, cache)
+
+
+
+
+
+class Pool2DBackward:
+
+    """
+    This class implements the backward pass of 2D pooling operations, including both max pooling and average pooling.
+
+    Methods:
+        distribute_value(dZ, shape):
+            Distributes the input value evenly across a given shape.
+
+        pool_max_backward(dA, cache):
+            Performs backward pass of the max pooling operation.
+
+        pool_average_backward(dA, cache):
+            Performs backward pass of the average pooling operation.
+    """
+
+    def __init__(self):
+        """
+        Initialize the Pool2DBackward class.
+        """
+        pass
+
+    def distribute_value(self, dZ, shape):
+
+        """
+        Distributes the input value evenly across a given shape.
+
+        Parameters:
+
+            - dZ (float): The input value to distribute.
+            - shape (tuple): The shape (height, width) over which to distribute the value.
+
+        Returns:
+
+            - A (numpy.ndarray): An array of the specified shape with the input value evenly distributed.
+        """
+
+        (nh, nw) = shape
+        average = dZ / (nh * nw)
+        A = np.ones(shape) * average
+
+        return A
+
+
+
+    def pool_max_backward(self, dA, cache):
+
+        """
+        Performs the backward pass of the max pooling operation.
+
+        Parameters:
+
+            - dA (numpy.ndarray): Gradient of the cost with respect to the output of the pooling layer,
+                                  same shape as the output of the pooling layer (m, nh, nw, nc).
+            - cache (tuple): A tuple of (A, f, stride) where A is the input data,
+                             f is the pooling window size, and stride is the stride of the pooling window.
+
+        Returns:
+
+        dA_pre (numpy.ndarray): Gradient of the cost with respect to the input of the pooling layer,
+                                same shape as the input (m, nh_pre, nw_pre, nc_pre).
+        """
+
+        (A, f, stride) = cache
+
+        m, nh, nw, nc = dA.shape
+
+        dA_pre = np.zeros(A.shape)
+
+        for i in range(m):
+
+            a_pre = A[i]
+
+            for h in range(nh):
+                for w in range(nw):
+                    for c in range(nc):
+                        v_start = h * stride
+                        v_end = v_start + f
+                        h_start = w * stride
+                        h_end = h_start + f
+
+                        a_slice = a_pre[v_start: v_end, h_start: h_end, c]
+                        mask = (a_slice == np.max(a_slice))
+                        dA_pre[i, v_start: v_end, h_start: h_end, c] += mask * dA[i, h, w, c]
+
+        return dA_pre
+
+    def pool_average_backward(self, dA, cache):
+
+        """
+        Performs the backward pass of the average pooling operation.
+
+        Parameters:
+
+            - dA (numpy.ndarray): Gradient of the cost with respect to the output of the pooling layer,
+                                  same shape as the output of the pooling layer (m, nh, nw, nc).
+            - cache (tuple): A tuple of (A, f, stride) where A is the input data, f is the pooling window size,
+                             and stride is the stride of the pooling window.
+
+        Returns:
+
+            - dA_pre (numpy.ndarray): Gradient of the cost with respect to the input of the pooling layer,
+                                      same shape as the input (m, nh_pre, nw_pre, nc_pre).
+        """
+
+        (A, f, stride) = cache
+
+        m, nh, nw, nc = dA.shape
+
+        dA_pre = np.zeros(A.shape)
+
+        for i in range(m):
+
+            for h in range(nh):
+                for w in range(nw):
+                    for c in range(nc):
+                        v_start = h * stride
+                        v_end = v_start + f
+                        h_start = w * stride
+                        h_end = h_start + f
+
+                        da = dA[i, h, w, c]
+                        shape = (f, f)
+                        dA_pre[i, v_start: v_end, h_start: h_end, c] += self.distribute_value(
+                            dZ=da,
+                            shape=shape
+                        )
+
+        return dA_pre
+
+
+class DenseFroward:
+    """
+    This class implements the forward pass for a fully connected (dense) layer, including
+    initialization of parameters and activation functions such as ReLU, Sigmoid, and Softmax.
+
+    Methods:
+
+        - initialize_parameters(A, units, seed):
+          Initializes weights and biases for the dense layer.
+        - relu(Z):
+            Applies the ReLU activation function.
+        - sigmoid(Z):
+            Applies the Sigmoid activation function.
+        - softmax(Z):
+            Applies the Softmax activation function.
+        - fc_forward(A, units, activation="relu", W=None, b=None, seed=0):
+            Performs the forward pass through the dense layer.
+    """
+
+    def __init__(self):
+
+        """
+        Initializes the DenseForward class.
+        """
+
+        pass
+
+    def initialize_parameters(self, A, units, seed):
+
+        """
+        Initializes weights and biases for a dense layer.
+
+        Parameters:
+            - A (numpy.ndarray): Flattened output of the last convolutional layer.
+            - units (int): Number of neurons in the dense layer.
+            - seed (int): Random seed for reproducibility.
+
+        Returns:
+            - tuple: Tuple containing the initialized weights (W) and biases (b).
+        """
+
+        np.random.seed(seed)
+
+        W = np.random.randn(units, len(A)) * np.sqrt(2 / len(A))
+        b = np.zeros((units, 1))
+
+        return (W, b)
+
+
+    def relu(self, Z):
+
+        """
+        ReLU activation function.
+
+        Parameters:
+            - Z (numpy.ndarray): Linear output of the layer.
+
+        Returns:
+            - tuple: A tuple (A, Z) where A is the activated output and Z is the input to the activation function.
+        """
+
+        A = np.maximum(0, Z)
+        cache = Z
+
+        return (A, cache)
+
+    def sigmoid(self, Z):
+
+        """
+        Sigmoid activation function.
+
+        Parameters:
+            - Z (numpy.ndarray): Linear output of the layer.
+
+        Returns:
+            - tuple: A tuple (A, Z) where A is the activated output and Z is the input to the activation function.
+        """
+
+        A = 1 / (1 + np.exp(-Z))
+        cache = Z
+
+        return (A, cache)
+
+    def softmax(self, Z):
+
+        """
+        Softmax activation function.
+
+        Parameters:
+            - Z (numpy.ndarray): Linear output of the layer.
+
+        Returns:
+            - tuple: A tuple (A, Z) where A is the activated output and Z is the input to the activation function.
+        """
+
+        A = np.divide(np.exp(Z), np.sum(np.exp(Z), axis=0, keepdims=True) + 1e-15)
+
+        cache = Z
+
+        return (A, cache)
+
+    def fc_forward(self, A, units, activation="relu", W=None, b=None, seed=0):
+
+        """
+        Forward pass through a fully connected (dense) layer.
+
+        Parameters:
+            - A (numpy.ndarray): Input data.
+            - units (int): Number of neurons in the dense layer.
+            - activation (str): Activation function to use ("relu", "sigmoid", or "softmax").
+            - W (numpy.ndarray): Weights (optional, for reusability).
+            - b (numpy.ndarray): Biases (optional, for reusability).
+            - seed (int): Random seed for initialization (if W and b are not provided).
+
+        Returns:
+            - tuple: A tuple (A, W, b, cache) where A is the activated output, W is the weights,
+                     b is the biases, and cache contains intermediate values for backpropagation.
+        """
+
+        if not W and not b:
+            (W, b) = self.initialize_parameters(
+                A=A,
+                units=units,
+                seed=seed
+            )
+
+        linear_cache = (A, W, b)
+
+        Z = np.dot(W, A) + b
+
+        if activation == "relu":
+
+            (A, activation_cache) = self.relu(Z=Z)
+
+        elif activation == "sigmoid":
+
+            (A, activation_cache) = self.sigmoid(Z=Z)
+
+        elif activation == "softmax":
+
+            (A, activation_cache) = self.softmax(Z=Z)
+
+        cache = (linear_cache, activation_cache)
+
+        return (A, W, b, cache)
+
+
+
