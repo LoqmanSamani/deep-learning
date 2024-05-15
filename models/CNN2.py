@@ -767,3 +767,374 @@ class DenseFroward:
 
 
 
+
+class DenseBackward:
+    """
+    This class implements the backward pass for a fully connected (dense) layer, including
+    gradients for activation functions such as ReLU, Sigmoid, and Softmax.
+
+    Methods:
+
+        - backward_relu(dA, Z):
+            Computes the gradient of the ReLU activation function.
+        - backward_sigmoid(dA, Z):
+            Computes the gradient of the Sigmoid activation function.
+        - backward_softmax(dA, Z):
+            Computes the gradient of the Softmax activation function.
+        - fc_backward(A, Y, cache, activation, dA=None, last_layer=False):
+            Performs the backward pass through the dense layer.
+    """
+    def __init__(self):
+        """
+        Initializes the DenseBackward class.
+        """
+        pass
+
+    def backward_relu(self, dA, Z):
+        """
+        Computes the gradient of the ReLU activation function.
+
+        Parameters:
+            - dA (numpy.ndarray): Gradient of the loss with respect to the activation output.
+            - Z (numpy.ndarray): Linear output of the layer before activation.
+
+        Returns:
+            - dZ (numpy.ndarray): Gradient of the loss with respect to Z.
+        """
+
+        dZ = np.array(dA, copy=True)
+        dZ[Z <= 0] = 0
+
+        return dZ
+
+    def backward_sigmoid(self, dA, Z):
+        """
+        Computes the gradient of the Sigmoid activation function.
+
+        Parameters:
+            - dA (numpy.ndarray): Gradient of the loss with respect to the activation output.
+            - Z (numpy.ndarray): Linear output of the layer before activation.
+
+        Returns:
+            - dZ (numpy.ndarray): Gradient of the loss with respect to Z.
+        """
+
+        A = 1 / (1 + np.exp(-Z))
+        dZ = np.multiply(np.multiply(dA, A), 1 - A)
+
+        return dZ
+
+    def backward_softmax(self, dA, Z):
+        """
+        Computes the gradient of the Softmax activation function.
+
+        Parameters:
+            - dA (numpy.ndarray): Gradient of the loss with respect to the activation output.
+            - Z (numpy.ndarray): Linear output of the layer before activation.
+
+        Returns:
+            - dZ (numpy.ndarray): Gradient of the loss with respect to Z.
+        """
+
+        A = np.divide(np.exp(Z), np.sum(np.exp(Z), axis=0, keepdims=True) + 1e-15)
+        dZ = A * (1 - A) * dA
+
+        return dZ
+
+    def fc_backward(self, A, Y, cache, activation, dA=None, last_layer=False):
+        """
+        Performs the backward pass through a fully connected (dense) layer.
+
+        Parameters:
+            - A (numpy.ndarray): Activated output from the forward pass.
+            - Y (numpy.ndarray): True labels.
+            - cache (tuple): Cached values from the forward pass.
+            - activation (str): Activation function used ("relu", "sigmoid", or "softmax").
+            - dA (numpy.ndarray, optional): Gradient of the loss with respect to the activation output.
+            - last_layer (bool): Whether this is the last layer of the network.
+
+        Returns:
+            - tuple: Gradients with respect to A_prev, W, and b (dA_prev, dW, db).
+                """
+
+        if last_layer:
+            dA = - (np.divide(Y, A + 1e-15) - np.divide(1 - Y, 1 - A + 1e-15))
+
+        (linear_cache, activation_cache) = cache
+        (A, W, b) = linear_cache
+        Z = activation_cache
+        m = A.shape[1]
+
+        if activation == "sigmoid":
+            dZ = self.backward_sigmoid(dA=dA, Z=Z)
+
+        elif activation == "softmax":
+            dZ = self.backward_softmax(dA=dA, Z=Z)
+
+        elif activation == "relu":
+            dZ = self.backward_relu(dA=dA, Z=Z)
+
+        dA = np.dot(W.T, dZ)
+        dW = 1 / m * np.dot(dZ, A.T)
+        db = 1 / m * np.sum(dZ, axis=1, keepdims=True)
+
+        return (dA, dW, db)
+
+
+
+class UpdateAdam:
+    """
+    This class implements the Adam optimization algorithm for updating parameters
+    of a neural network layer, including initialization of Adam parameters and
+    computation of first and second momentums.
+
+    Methods:
+        - initialize_adam_parameters(W, b):
+            Initializes Adam parameters (vdW, vdb, sdW, sdb).
+        - compute_first_momentum(dW, db, vdW, vdb, beta, t):
+            Computes the first momentum for Adam optimization.
+        - compute_second_momentum(dW, db, sdW, sdb, beta, t):
+            Computes the second momentum for Adam optimization.
+        - update_parameters(dW, db, W, b, learning_rate, beta1, beta2, epsilon, t, adam_params=None):
+            Updates parameters using the Adam optimization algorithm.
+    """
+    def __init__(self):
+        """
+        Initializes the UpdateAdam class.
+        """
+        pass
+
+    def initialize_adam_parameters(self, W, b):
+        """
+        Initializes Adam parameters (vdW, vdb, sdW, sdb) to zeros.
+
+        Parameters:
+            - W (numpy.ndarray): Weights of the layer.
+            - b (numpy.ndarray): Biases of the layer.
+
+        Returns:
+            - tuple: Tuple containing initialized vdW, vdb, sdW, sdb.
+        """
+
+        vdW = np.zeros(W.shape)
+        vdb = np.zeros(b.shape)
+
+        sdW = np.zeros(W.shape)
+        sdb = np.zeros(b.shape)
+
+        return (vdW, vdb, sdW, sdb)
+
+
+    def compute_first_momentum(self, dW, db, vdW, vdb, beta, t):
+        """
+        Computes the first momentum for Adam optimization.
+
+        Parameters:
+            - dW (numpy.ndarray): Gradient of the loss with respect to weights.
+            - db (numpy.ndarray): Gradient of the loss with respect to biases.
+            - vdW (numpy.ndarray): First moment estimate for weights.
+            - vdb (numpy.ndarray): First moment estimate for biases.
+            - beta (float): Exponential decay rate for the first moment estimates.
+            - t (int): Time step.
+
+        Returns:
+            - tuple: Tuple containing updated vdW and vdb.
+        """
+
+        vdW = (beta * vdW) + ((1 - beta) * dW)
+        vdb = (beta * vdb) + ((1 - beta) * db)
+
+        vdW = vdW / (1 - np.power(beta, t))
+        vdb = vdb / (1 - np.power(beta, t))
+
+        return (vdW, vdb)
+
+    def compute_second_momentum(self, dW, db, sdW, sdb, beta, t):
+
+        """
+        Computes the second momentum for Adam optimization.
+
+        Parameters:
+            - dW (numpy.ndarray): Gradient of the loss with respect to weights.
+            - db (numpy.ndarray): Gradient of the loss with respect to biases.
+            - sdW (numpy.ndarray): Second moment estimate for weights.
+            - sdb (numpy.ndarray): Second moment estimate for biases.
+            - beta (float): Exponential decay rate for the second moment estimates.
+            - t (int): Time step.
+
+        Returns:
+            - tuple: Tuple containing updated sdW and sdb.
+        """
+
+        sdW = (beta * sdW) + ((1 - beta) * np.power(dW, 2))
+        sdb = (beta * sdb) + ((1 - beta) * np.power(db, 2))
+
+        sdW = sdW / (1 - np.power(beta, t))
+        sdb = sdb / (1 - np.power(beta, t))
+
+        return (sdW, sdb)
+
+    def update_parameters(self, dW, db, W, b, learning_rate, beta1, beta2, epsilon, t, adam_params=None):
+
+        """
+        Updates parameters using the Adam optimization algorithm.
+
+        Parameters:
+            - dW (numpy.ndarray): Gradient of the loss with respect to weights.
+            - db (numpy.ndarray): Gradient of the loss with respect to biases.
+            - W (numpy.ndarray): Weights of the layer.
+            - b (numpy.ndarray): Biases of the layer.
+            - learning_rate (float): Learning rate for the update.
+            - beta1 (float): Exponential decay rate for the first moment estimates.
+            - beta2 (float): Exponential decay rate for the second moment estimates.
+            - epsilon (float): Small constant for numerical stability.
+            - t (int): Time step.
+            - adam_params (dict, optional): Dictionary containing existing Adam parameters (vdW, vdb, sdW, sdb).
+
+        Returns:
+            - tuple: Tuple containing updated W, b, and a dictionary of Adam parameters (vdW, vdb, sdW, sdb).
+        """
+
+        if adam_params is None:
+
+            (vdW, vdb, sdW, sdb) = self.initialize_adam_parameters(W=W, b=b)
+
+        else:
+
+            vdW = adam_params["vdW"]
+            vdb = adam_params["vdb"]
+            sdW = adam_params["sdW"]
+            sdb = adam_params["sdb"]
+
+            (vdW, vdb) = self.compute_first_momentum(dW=dW, db=db, vdW=vdW, vdb=vdb, beta=beta1, t=t)
+            (sdW, sdb) = self.compute_second_momentum(dW=dW, db=db, sdW=sdW, sdb=sdb, beta=beta2, t=t)
+
+        W -= learning_rate * (vdW / np.sqrt(sdW + epsilon))
+        b -= learning_rate * (vdb / np.sqrt(sdb + epsilon))
+
+        adam_params_ = {
+
+            "vdW": vdW,
+            "vdb": vdb,
+            "sdW": sdW,
+            "sdb": sdb
+
+        }
+
+        return (W, b, adam_params_)
+
+
+class MiniBatch:
+    """
+    This class implements functionality to create random mini-batches from the given dataset
+    for stochastic gradient descent (SGD) optimization.
+
+    Methods:
+        - random_mini_batches(X, Y, mini_batch_size, seed):
+            Creates a list of random mini-batches from the input data.
+    """
+    def __init__(self):
+        """
+        Initializes the MiniBatch class.
+        """
+        pass
+
+    def random_mini_batches(self, X, Y, mini_batch_size, seed):
+
+        """
+        Creates a list of random mini-batches from the input data.
+
+        Parameters:
+            - X (numpy.ndarray): Input data of shape (m, n_x) where m is the number of examples
+                                 and n_x is the number of features.
+            - Y (numpy.ndarray): True labels of shape (n_y, m) where m is the number of examples
+                                 and n_y is the number of output classes.
+            - mini_batch_size (int): Size of each mini-batch.
+            - seed (int): Random seed for reproducibility.
+
+        Returns:
+            - mini_batches (list): List of tuples (mini_batch_X, mini_batch_Y) where mini_batch_X has shape
+                            (mini_batch_size, n_x) and mini_batch_Y has shape (n_y, mini_batch_size).
+        """
+
+        np.random.seed(seed)
+        m = X.shape[0]
+
+        permutation = np.random.permutation(m)
+        shuffled_X = X[permutation]
+        shuffled_Y = Y[:, permutation]
+
+        num_complete_mini_batches = m // mini_batch_size
+        mini_batches = []
+
+        for k in range(num_complete_mini_batches):
+
+            start_idx = k * mini_batch_size
+            end_idx = (k + 1) * mini_batch_size
+            mini_batch_X = shuffled_X[start_idx:end_idx]
+            mini_batch_Y = shuffled_Y[:, start_idx:end_idx]
+            mini_batches.append((mini_batch_X, mini_batch_Y))
+
+        if m % mini_batch_size != 0:
+
+            start_idx = num_complete_mini_batches * mini_batch_size
+            mini_batch_X = shuffled_X[start_idx:]
+            mini_batch_Y = shuffled_Y[:, start_idx:]
+            mini_batches.append((mini_batch_X, mini_batch_Y))
+
+        return mini_batches
+
+
+class Losses:
+    """
+    This class implements different loss functions for training neural networks,
+    including cross entropy and categorical cross entropy.
+
+    Methods:
+        - compute_cost(A, Y):
+            Computes the cost given the predicted output and true labels.
+    """
+
+    def __init__(self, loss="cross entropy"):
+        """
+        Initializes the Losses class with the specified loss function.
+
+        Parameters:
+            - loss (str): Type of loss function to use ("cross entropy" or "categorical cross entropy").
+                          Default is "cross entropy".
+        """
+        self.loss = loss
+
+    def compute_cost(self, A, Y):
+        """
+        Computes the cost given the predicted output and true labels.
+
+        Parameters:
+            - A (numpy.ndarray): Predicted output from the model (probabilities).
+            - Y (numpy.ndarray): True labels.
+
+        Returns:
+            - float: Computed cost value.
+
+        Notes:
+            This method is designed to be used with mini-batches, accumulating costs over an entire epoch
+            and then dividing by the number of training examples.
+        """
+        cost = 0
+
+        if self.loss == "cross entropy":
+            log_probs = np.multiply(-np.log(A + 1e-15), Y) + np.multiply(-np.log(1 - A + 1e-15), 1 - Y)
+            cost = np.sum(log_probs)
+
+        elif self.loss == "categorical cross entropy":
+            A = np.clip(A, 1e-15, 1 - 1e-15)
+            cost = -np.sum(Y * np.log(A))
+
+        return cost
+
+
+
+
+
+
+
