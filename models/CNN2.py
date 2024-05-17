@@ -1,5 +1,6 @@
 import numpy as np
-import random
+import time
+import h5py
 
 
 class Conv2DForward:
@@ -108,7 +109,7 @@ class Conv2DForward:
 
         return X_conv
 
-    def conv2d(self, X, filters, kernel_size=(3, 3), padding=2, strides=1, parameters=None, layer=None):
+    def conv2d(self, X, filters, kernel_size=(3, 3), padding=2, strides=1, W=None, b=None):
         """
         Applies 2D convolution operation to the input data.
 
@@ -118,8 +119,8 @@ class Conv2DForward:
             - kernel_size (tuple): Size of the applied filters (f, f).
             - padding (int): Number of padding columns or rows.
             - strides (int): Number of strides.
-            - parameters (dict): Contains pre-initialized weight matrices W and bias vectors b.
-            - layer (int): Layer number.
+            - W (ndarray): weight matrix W.
+            - b (ndarray): bias array
 
         Returns:
             tuple: A tuple containing the output data, cache, weight matrix W, and bias vector b.
@@ -128,12 +129,10 @@ class Conv2DForward:
         num_channels = X[0].shape[-1]
         f = kernel_size[0]
 
-        if not parameters:
+        if W is None:
             (W, b) = self.initialize_parameters(f=f, num_channels=num_channels, filters=filters)
-        else:
-            (W, b) = parameters[f"W{layer}"], parameters[f"b{layer}"]
 
-        linear_cache = (X, W, b, filters, kernel_size, padding, strides, layer)
+        linear_cache = (X, W, b, filters, kernel_size, padding, strides)
         X_pad = self.zero_padding(X=X, padding=padding)
 
         nh = self.x_conv_shape(n_pre=X_pad[0].shape[0], f=f, s=strides)
@@ -283,7 +282,7 @@ class Conv2DBackward:
         """
 
         (linear_cache, activation_cache) = caches
-        (X, W, b, filters, kernel_size, padding, strides, layer) = linear_cache
+        (X, W, b, filters, kernel_size, padding, strides) = linear_cache
 
         Z = activation_cache
 
@@ -738,7 +737,7 @@ class DenseFroward:
                      b is the biases, and cache contains intermediate values for backpropagation.
         """
 
-        if not W and not b:
+        if W is None:
             (W, b) = self.initialize_parameters(
                 A=A,
                 units=units,
@@ -1132,6 +1131,271 @@ class Losses:
 
         return cost
 
+
+
+
+class ConvolutionModel:
+    """
+    This class implements a Convolutional Neural Network (CNN) model training from scratch using a specific architecture.
+
+    The architecture includes the following layers:
+        1. Convolution
+        2. Pooling
+        3. Convolution
+        4. Pooling
+        5. Fully Connected
+        6. Fully Connected
+
+    Methods:
+        - train(X, Y, epochs=10, mini_batch_size=64, alpha=1e-3):
+            Trains the CNN model on the provided dataset.
+    """
+    def __init__(self):
+        """
+        Initializes the ConvolutionModel class.
+        """
+        pass
+
+    def train(self, X, Y, epochs=10, mini_batch_size=64, alpha=1e-3):
+        """
+        Trains the CNN model on the provided dataset using the specified parameters.
+
+        Parameters:
+            - X (numpy.ndarray): Input data of shape (m, height, width, channels).
+            - Y (numpy.ndarray): True labels of shape (m,).
+            - epochs (int): Number of epochs to train the model. Default is 10.
+            - mini_batch_size (int): Size of the mini-batches. Default is 64.
+            - alpha (float): Learning rate for the optimizer. Default is 1e-3.
+
+        Returns:
+            - params (dict): Dictionary containing the trained parameters.
+            - costs (list): List of costs calculated at each epoch.
+            - train_time (float): Duration of the training process.
+
+        Notes:
+            The model follows a specific architecture with convolutional, pooling, and fully connected layers.
+            It uses the Adam optimizer for parameter updates and the categorical cross-entropy loss function.
+        """
+        tic = time.time()
+        costs = []
+
+        num_classes = len(np.unique(Y))  # 6 classes
+        Y = np.eye(num_classes)[Y].T
+        m = X.shape[0]
+        t = 1
+
+        C1 = Conv2DForward()
+        C2 = Conv2DBackward()
+        P1 = Pool2DForward()
+        P2 = Pool2DBackward()
+        D1 = DenseFroward()
+        D2 = DenseBackward()
+        Adam = UpdateAdam()
+        M = MiniBatch()
+        L = Losses(loss="categorical cross entropy")
+
+        print("---------------------------------------------------------------------------------")
+        print()
+        print("    My First Implementation of CNN From Scratch  (using loop!!! too slow :))     ")
+        print()
+        print("---------------------------------------------------------------------------------")
+
+        #  Forward pass
+        (A, conv_cache1, W1, b1) = C1.conv2d(X=X, filters=7, kernel_size=(3, 3), padding=1, strides=1, W=None, b=None)
+        (vdW1, vdb1, sdW1, sdb1) = Adam.initialize_adam_parameters(W=W1, b=b1)
+        (A, pool_cache1) = P1.pool_max_forward(A=A, f=2, stride=2)
+        (A, conv_cache2, W2, b2) = C1.conv2d(X=A, filters=14, kernel_size=(3, 3), padding=1, strides=1, W=None, b=None)
+        (vdW2, vdb2, sdW2, sdb2) = Adam.initialize_adam_parameters(W=W2, b=b2)
+        (A, pool_cache2) = P1.pool_max_forward(A=A, f=2, stride=2)
+        A_pool2 = A
+        A = A.reshape(m, -1).T
+        (A, W3, b3, fc_cache1) = D1.fc_forward(A=A, units=50, activation="relu", W=None, b=None, seed=0)
+        (vdW3, vdb3, sdW3, sdb3) = Adam.initialize_adam_parameters(W=W3, b=b3)
+        (A, W4, b4, fc_cache2) = D1.fc_forward(A=A, units=6, activation="softmax", W=None, b=None, seed=0)
+        (vdW4, vdb4, sdW4, sdb4) = Adam.initialize_adam_parameters(W=W4, b=b4)
+        cost = L.compute_cost(A, Y)
+        costs.append(cost)
+        print()
+        print(f"                        Epoch 1;  Cost: {cost/m}                               ")
+
+        # Backward pass
+        (dA3, dW4, db4) = D2.fc_backward(A=A, Y=Y, cache=fc_cache2, activation="softmax", dA=None, last_layer=True)
+        (vdW4, vdb4) = Adam.compute_first_momentum(dW=dW4, db=db4, vdW=vdW4, vdb=vdb4, beta=0.9, t=t)
+        (sdW4, sdb4) = Adam.compute_second_momentum(dW=dW4, db=db4, sdW=sdW4, sdb=sdb4, beta=0.999, t=t)
+        adam4 = {"vdW": vdW4, "vdb": vdb4, "sdW": sdW4, "sdb": sdb4}
+        (W4, b4, adam4) = Adam.update_parameters(dW=dW4, db=db4, W=W4, b=b4, learning_rate=alpha, beta1=0.9, beta2=0.999,
+                                            epsilon=1e-8, t=t, adam_params=adam4)
+        (dA2, dW3, db3) = D2.fc_backward(A=fc_cache1[0][0], Y=Y, cache=fc_cache1, activation="relu", dA=dA3,
+                                      last_layer=False)
+        (vdW3, vdb3) = Adam.compute_first_momentum(dW=dW3, db=db3, vdW=vdW3, vdb=vdb3, beta=0.9, t=t)
+        (sdW3, sdb3) = Adam.compute_second_momentum(dW=dW3, db=db3, sdW=sdW3, sdb=sdb3, beta=0.999, t=t)
+        adam3 = {"vdW": vdW3, "vdb": vdb3, "sdW": sdW3, "sdb": sdb3}
+        (W3, b3, adam3) = Adam.update_parameters(dW=dW3, db=db3, W=W3, b=b3, learning_rate=alpha, beta1=0.9, beta2=0.999,
+                                            epsilon=1e-8, t=t, adam_params=adam3)
+        dA2 = dA2.reshape(A_pool2.shape)
+        dA2 = P2.pool_max_backward(dA=dA2, cache=pool_cache2)
+        dA1, dW2, db2 = C2.conv2d_backward(dAl=dA2, caches=conv_cache2)
+        (vdW2, vdb2) = Adam.compute_first_momentum(dW=dW2, db=db2, vdW=vdW2, vdb=vdb2, beta=0.9, t=t)
+        (sdW2, sdb2) = Adam.compute_second_momentum(dW=dW2, db=db2, sdW=sdW2, sdb=sdb2, beta=0.999, t=t)
+        adam2 = {"vdW": vdW2, "vdb": vdb2, "sdW": sdW2, "sdb": sdb2}
+        (W2, b2, adam2) = Adam.update_parameters(dW=dW2, db=db2, W=W2, b=b2,
+                                            learning_rate=alpha, beta1=0.9, beta2=0.999, epsilon=1e-8, t=t,
+                                            adam_params=adam2)
+        dA1 = P2.pool_max_backward(dA=dA1, cache=pool_cache1)
+        dA0, dW1, db1 = C2.conv2d_backward(dAl=dA1, caches=conv_cache1)
+        (vdW1, vdb1) = Adam.compute_first_momentum(dW=dW1, db=db1, vdW=vdW1, vdb=vdb1, beta=0.9, t=t)
+        (sdW1, sdb1) = Adam.compute_second_momentum(dW=dW1, db=db1, sdW=sdW1, sdb=sdb1, beta=0.999, t=t)
+        adam1 = {"vdW": vdW1, "vdb": vdb1, "sdW": sdW1, "sdb": sdb1}
+        (W1, b1, adam1) = Adam.update_parameters(dW=dW1, db=db1, W=W1, b=b1,
+                                            learning_rate=alpha, beta1=0.9, beta2=0.999, epsilon=1e-8, t=t,
+                                            adam_params=adam1)
+
+        for i in range(1, epochs):
+
+            seed = 0
+            mini_batches = M.random_mini_batches(X=X, Y=Y, mini_batch_size=mini_batch_size, seed=seed)
+            total_cost = 0
+            for j in range(len(mini_batches)):
+                X_batch, Y_batch = mini_batches[j]
+                m_ = X_batch.shape[0]
+
+                # Forward pass
+                (A_mini, conv_cache1_mini, W1, b1) = C1.conv2d(X=X_batch, filters=7, kernel_size=(3, 3), padding=1, strides=1, W=W1,
+                                                  b=b1)
+                (A_mini, pool_cache1_mini) = P1.pool_max_forward(A=A_mini, f=2, stride=2)
+                (A_mini, conv_cache2_mini, W2, b2) = C1.conv2d(X=A_mini, filters=14, kernel_size=(3, 3), padding=1, strides=1, W=W2,
+                                                  b=b2)
+                (A_mini, pool_cache2_mini) = P1.pool_max_forward(A=A_mini, f=2, stride=2)
+                A_pool2 = A_mini
+                A_mini = A_mini.reshape(m_, -1).T
+                (A_mini, W3, b3, fc_cache1_mini) = D1.fc_forward(A=A_mini, units=50, activation="relu", W=W3, b=b3, seed=0)
+                (A_mini, W4, b4, fc_cache2_mini) = D1.fc_forward(A=A_mini, units=6, activation="softmax", W=W4, b=b4, seed=0)
+
+                # compute cost
+                cost = L.compute_cost(A_mini, Y_batch)
+                costs.append(cost)
+                total_cost += cost
+
+                # backward pass
+                (dA3, dW4, db4) = D2.fc_backward(A=A_mini, Y=Y_batch, cache=fc_cache2_mini, activation="softmax", dA=None,
+                                              last_layer=True)
+                (vdW4, vdb4) = Adam.compute_first_momentum(dW=dW4, db=db4, vdW=vdW4, vdb=vdb4, beta=0.9, t=t)
+                (sdW4, sdb4) = Adam.compute_second_momentum(dW=dW4, db=db4, sdW=sdW4, sdb=sdb4, beta=0.999, t=t)
+                adam4 = {"vdW": vdW4, "vdb": vdb4, "sdW": sdW4, "sdb": sdb4}
+                (W4, b4, adam4) = Adam.update_parameters(dW=dW4, db=db4, W=W4, b=b4, learning_rate=alpha, beta1=0.9,
+                                                    beta2=0.999, epsilon=1e-8, t=t, adam_params=adam4)
+
+                (dA2, dW3, db3) = D2.fc_backward(A=fc_cache1_mini[0][0], Y=Y_batch, cache=fc_cache1_mini,
+                                              activation="relu", dA=dA3, last_layer=False)
+                (vdW3, vdb3) = Adam.compute_first_momentum(dW=dW3, db=db3, vdW=vdW3, vdb=vdb3, beta=0.9, t=t)
+                (sdW3, sdb3) = Adam.compute_second_momentum(dW=dW3, db=db3, sdW=sdW3, sdb=sdb3, beta=0.999, t=t)
+                adam3 = {"vdW": vdW3, "vdb": vdb3, "sdW": sdW3, "sdb": sdb3}
+                (W3, b3, adam3) = Adam.update_parameters(dW=dW3, db=db3, W=W3, b=b3, learning_rate=alpha, beta1=0.9,
+                                                    beta2=0.999, epsilon=1e-8, t=t, adam_params=adam3)
+
+                dA2 = dA2.reshape(A_pool2.shape)
+                dA2 = P2.pool_max_backward(dA=dA2, cache=pool_cache2)
+                dA1, dW2, db2 = C2.conv2d_backward(dAl=dA2, caches=conv_cache2)
+                (vdW2, vdb2) = Adam.compute_first_momentum(dW=dW2, db=db2, vdW=vdW2, vdb=vdb2, beta=0.9, t=t)
+                (sdW2, sdb2) = Adam.compute_second_momentum(dW=dW2, db=db2, sdW=sdW2, sdb=sdb2, beta=0.99, t=t)
+                adam2 = {"vdW": vdW2, "vdb": vdb2, "sdW": sdW2, "sdb": sdb2}
+                (W2, b2, adam2) = Adam.update_parameters(dW=dW2, db=db2, W=W2, b=b2,
+                                                    learning_rate=alpha, beta1=0.9, beta2=0.999, epsilon=1e-8, t=t,
+                                                    adam_params=adam2)
+
+                dA1 = P2.pool_max_backward(dA=dA1, cache=pool_cache1)
+
+                dA0, dW1, db1 = C2.conv2d_backward(dAl=dA1, caches=conv_cache1)
+                (vdW1, vdb1) = Adam.compute_first_momentum(dW=dW1, db=db1, vdW=vdW1, vdb=vdb1, beta=0.9, t=t)
+                (sdW1, sdb1) = Adam.compute_second_momentum(dW=dW1, db=db1, sdW=sdW1, sdb=sdb1, beta=0.999, t=t)
+                adam1 = {"vdW": vdW1, "vdb": vdb1, "sdW": sdW1, "sdb": sdb1}
+                (W1, b1, adam1) = Adam.update_parameters(dW=dW1, db=db1, W=W1, b=b1,
+                                                    learning_rate=alpha, beta1=0.9, beta2=0.999, epsilon=1e-8, t=t,
+                                                    adam_params=adam1)
+                t += 1
+            seed += 1
+            print()
+            print(f"                       Epoch {i + 1};  Cost: {total_cost / m}                    ")
+
+        params = {
+
+            "W1": conv_cache1[0][1],
+            "b1": conv_cache1[0][2],
+            "W2": conv_cache2[0][1],
+            "b2": conv_cache2[0][2],
+            "W3": W3,
+            "b3": b3,
+            "W4": W4,
+            "b4": b4
+        }
+        toc = time.time()
+
+        train_time = toc - tic
+        print()
+        print(f"                        Train Duration: {train_time}")
+
+        return (params, costs, train_time)
+
+
+def load_dataset(train_path, test_path):
+    train_data = h5py.File(train_path, "r")
+    test_data = h5py.File(test_path, "r")
+    X_train = np.array(train_data["train_set_x"])
+    Y_train = np.array(train_data["train_set_y"])
+    X_test = np.array(test_data["test_set_x"])
+    Y_test = np.array(test_data["test_set_y"])
+    classes = np.array(test_data["list_classes"])
+
+    return X_train, Y_train, X_test, Y_test, classes
+
+
+def preprocess_data(X):
+    X = X / 255.
+    X = np.transpose(X, (0, 1, 2, 3))
+
+    return X
+
+X_train, Y_train, X_test, Y_test, classes = load_dataset("/home/samani/Documents/projects/deep-learning/data/train_signs.h5", "/home/samani/Documents/projects/deep-learning/data/test_signs.h5")
+
+X_train = preprocess_data(X_train)
+X_test = preprocess_data(X_test)
+
+model = ConvolutionModel()
+
+result = model.train(X_test[10:30, :, :, :], Y_test[10:30], epochs=10, mini_batch_size=5, alpha=1e-4)
+
+
+
+"""
+---------------------------------------------------------------------------------
+
+    My First Implementation of CNN From Scratch  (using loop!!! too slow :))     
+
+---------------------------------------------------------------------------------
+
+                        Epoch 1;  Cost: 11.375739698309847                               
+
+                        Epoch 2;  Cost: 9.479406466075112                    
+
+                        Epoch 3;  Cost: 9.33823893318924                    
+
+                        Epoch 4;  Cost: 9.338147874129124                    
+
+                        Epoch 5;  Cost: 9.338147426441981                    
+
+                        Epoch 6;  Cost: 9.338147412629644                    
+
+                        Epoch 7;  Cost: 9.338147412136792                    
+
+                        Epoch 8;  Cost: 9.338147412116745                    
+
+                        Epoch 9;  Cost: 9.338147412115797                    
+
+                        Epoch 10;  Cost: 9.338147412115745                    
+
+                        Train Duration: 913.0007016658783
+
+"""
 
 
 
