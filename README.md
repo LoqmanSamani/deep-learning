@@ -1,8 +1,4 @@
-Here's an improved version of your README file, with enhanced clarity, structure, and wording:
-
----
-
-<h2>Deep Learning</h2>
+# Deep Learning 
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-red?style=plastic)
 ![Python](https://img.shields.io/badge/python-blue?style=plastic&logo=python&logoColor=white)
@@ -40,12 +36,13 @@ Feel free to explore the models, and consider adapting them to your own projects
 
 
 
-| Model                                  | Description                                                                                                                                                                                                                                                                                                                                                   |
-|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ***[FFNN_1](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/deep_FNN1.py)*** | A deep feedforward neural network (MLP) implemented from scratch using Numpy. This model is used for Boolean classification tasks and employs gradient descent as the optimization algorithm. It was trained on a cat dataset to predict whether an image is of a cat or not.                                                                                     |
-| ***[FFNN_2](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/deep_FNN2.py)*** | A deep feedforward neural network (MLP), similar to FFNN_1 but with multiple parameter initialization choices. It includes options like ***He***, ***Xavier***, and ***Gaussian random variables*** for weight initialization. This variation aims to compare different initialization methods on Boolean classification tasks.                                 |
-| ***[FFNN_3](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/L2_DFNN.py)***   | A deep feedforward neural network (MLP) with L2 regularization implemented from scratch using Numpy. L2 regularization is used to prevent overfitting. This model was trained on a synthetic dataset to evaluate the effectiveness of L2 regularization in improving generalization.                                                                                           |
-| ***[AdamDFFNN](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/Adam_DFFNN.py)*** | A deep feedforward neural network (MLP) with Adam optimization and mini-batch/stochastic gradient descent techniques. The model includes options for bias correction and dynamic learning rate adjustment. It was trained on both a synthetic 2D dataset and a cat image dataset. The Adam optimizer is used to improve convergence speed and performance. |
+| Model                                                                                                 | Description                                                                                                                                                                                                                                                                                                                                                   |
+|-------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ***[FFNN_1](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/deep_FNN1.py)***  | A deep feedforward neural network (MLP) implemented from scratch using Numpy. This model is used for Boolean classification tasks and employs gradient descent as the optimization algorithm. It was trained on a cat dataset to predict whether an image is of a cat or not.                                                                                     |
+| ***[FFNN_2](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/deep_FNN2.py)***  | A deep feedforward neural network (MLP), similar to FFNN_1 but with multiple parameter initialization choices. It includes options like ***He***, ***Xavier***, and ***Gaussian random variables*** for weight initialization. This variation aims to compare different initialization methods on Boolean classification tasks.                                 |
+| ***[FFNN_3](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/L2_DFNN.py)***    | A deep feedforward neural network (MLP) with L2 regularization implemented from scratch using Numpy. L2 regularization is used to prevent overfitting. This model was trained on a synthetic dataset to evaluate the effectiveness of L2 regularization in improving generalization.                                                                                           |
+| ***[FFNN_4](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/Adam_DFFNN.py)*** | A deep feedforward neural network (MLP) with Adam optimization and mini-batch/stochastic gradient descent techniques. The model includes options for bias correction and dynamic learning rate adjustment. It was trained on both a synthetic 2D dataset and a cat image dataset. The Adam optimizer is used to improve convergence speed and performance. |
+| ***[]()***                                                                                            ||
 
 
 
