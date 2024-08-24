@@ -20,6 +20,20 @@ This specialization consists of five fundamental courses:
 - [Convolutional Neural Networks](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/certificates/conv_nets.pdf)
 - [Sequence Models](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/certificates/sequence_models.pdf)
 
+
+
+### Articles
+
+As part of my deep learning journey, I've authored two articles published on *Towards Data Science*. These articles document my experiences and insights, translating complex theories into practical implementations:
+
+1. [**From Theory to Practice: Building a Deep Feedforward Neural Network with Back Propagation in Python**](https://medium.com/@samaniloqman91/from-theory-to-practice-building-a-deep-feedforward-neural-network-with-back-propagation-in-python-9edc39164a68)  
+   In this article, I guide readers through the process of building a deep feedforward neural network from scratch, focusing on the backpropagation algorithm. It provides a step-by-step approach, blending theoretical concepts with practical Python implementation.
+
+2. [**Adam Optimization Demystified: Enhancing Multiclass MLP Performance**](https://medium.com/@samaniloqman91/adam-optimization-demystified-enhancing-multiclass-mlp-performance-000827cfd5e1)  
+   This article delves into the Adam optimization algorithm, explaining its mechanics and advantages. It also includes a hands-on example of how Adam can be used to enhance the performance of a multiclass MLP, offering readers both a theoretical and practical understanding.
+
+
+
 ### Models
 
 In the [**models**](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/certificates/sequence_models.pdf) directory, you'll find implementations of over 15 deep learning models that I developed throughout my learning journey. These include:
