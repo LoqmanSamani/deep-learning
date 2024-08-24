@@ -36,7 +36,7 @@ As part of my deep learning journey, I've authored two articles published on *To
 
 ### Models
 
-In the [**models**](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/certificates/sequence_models.pdf) directory, you'll find implementations of over 15 deep learning models that I developed throughout my learning journey. These include:
+In the [**models**](https://github.com/LoqmanSamani/deep-learning/tree/systembiology/models) directory, you'll find implementations of over 15 deep learning models that I developed throughout my learning journey. These include:
 
 - Deep Multi-Layer Perceptron (MLP) models
 - Convolutional Neural Networks (CNNs)
