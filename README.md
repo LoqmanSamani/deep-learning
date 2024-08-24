@@ -30,7 +30,7 @@ In the [**models**](https://github.com/LoqmanSamani/deep-learning/blob/systembio
 - Long Short-Term Memory (LSTM) networks
 - Transformer models
 
-Each model is implemented from scratch, with some also utilizing TensorFlow. Additionally, I have experimented with various optimization algorithms such as Gradient Descent (GD) and Adam, also implemented from scratch.
+Each model is implemented from scratch, with some also leveraging TensorFlow for more advanced functionalities. Throughout this journey, I've explored and implemented various optimization algorithms including Gradient Descent (GD), Mini-Batch Gradient Descent, Stochastic Gradient Descent (SGD), and the Adam optimizer. In addition to these, I've incorporated regularization techniques such as L2 Regularization and Dropout Regularization, as well as Learning Rate Decay, all implemented from scratch to better understand their impact on model performance and generalization.
 
 Feel free to explore the models, and consider adapting them to your own projects and datasets.
 
