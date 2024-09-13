@@ -1,135 +1,244 @@
 import numpy as np
+import tensorflow as tf
+
+
+class RNN:
+    """
+    A simple RNN model class with methods to initialize parameters,
+    perform forward and backward passes, and train the model.
+    """
+    def __init(self, epochs, num_hidden_units, learning_rate, weight_decay):
+
+        self.epochs = epochs
+        self.num_hidden_units = num_hidden_units
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+
+        """
+        Initializes the RNN model parameters.
+
+        Args:
+            epochs (int): Number of epochs for training.
+            num_hidden_units (int): Number of hidden units in the RNN.
+            learning_rate (float): Learning rate for the optimizer.
+            weight_decay (float): Weight decay (L2 regularization) for the optimizer.
+        """
 
 
 
-class Helpers:
-    def __init__(self):
-        pass
 
-    def tanh(self, x):
-        return np.tanh(x)
+    def initialize_params(self, n_a, n_x, n_y, m):
+        """
+        Initializes the parameters of the RNN model.
 
-    def dtanh(self, da_next, at):
-        return da_next * (1 - np.power(at, 2))
+        Args:
+            n_a (int): Number of hidden units.
+            n_x (int): Number of input features.
+            n_y (int): Number of output units.
+            m (int): Number of training examples (batch size).
 
-    def sigmoid(self, x):
-        return 1 / (1 + np.exp(-x))
-
-    def relu(self, x):
-        return np.maximum(x, 0)
-
-    def softmax(self, x):  # assuming x is a 1d array
-        e_x = np.exp(x - np.max(x))
-        return e_x / e_x.sum(axis=0)
-
-    def dsoftmax(self, dy, at, grads, params):
-
-        grads['dWya'] += np.dot(dy, at.T)
-        grads['dby'] += dy
-        da_next = np.dot(params['Wya'].T, dy) + grads['da_next']
-
-        return da_next
+        Returns:
+            dict: A dictionary containing initialized weights and biases.
+            tf.Variable: Initialized hidden state A0.
+        """
 
 
-class RNN(Helpers):
-    def __init__(self):
-        super().__init__()
+        initializer = tf.keras.initializers.GlorotNormal(seed=0)
+        a_initializer = tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.01, seed=0)
 
-    def step_forward(self, xt, a_pre, params):
+        A0 = tf.Variable(a_initializer(shape=(n_a, m)), trainable=True)
+        Wax = initializer(shape=(n_a, n_x))
+        Waa = initializer(shape=(n_a, n_a))
+        Wya = initializer(shape=(n_y, n_a))
+        ba = initializer(shape=(n_a, 1))
+        by = initializer(shape=(n_y, 1))
 
-        at = self.tanh(np.dot(params["Wax"], xt) + np.dot(params["Waa"], a_pre) + params["ba"])
-        yt = np.dot(params["Way"], self.softmax(at)) + params["by"]
+        parameters = {
+            "Wax": Wax,
+            "Waa": Waa,
+            "Wya": Wya,
+            "ba": ba,
+            "by": by
+        }
 
-        cache = (at, a_pre, xt, params)
+        return parameters, A0
 
-        return (at, yt, cache)
 
-    def forward_propagation(self, x, a0, params):
+
+    def compute_cost(self, Y_true, Y_hat, t_x):
+        """
+        Computes the cost function for the RNN model using categorical cross-entropy.
+
+        Args:
+            Y_true (tf.Tensor): Ground truth labels, shape (batch_size, num_classes, sequence_length).
+            Y_hat (tf.Tensor): Predicted outputs, shape (batch_size, num_classes, sequence_length).
+            t_x (int): Number of time steps (sequence length).
+
+        Returns:
+            tf.Tensor: Computed cost (mean cross-entropy loss).
+        """
+
+        loss_fn = tf.keras.losses.CategoricalCrossentropy()
+
+        Y_hat = tf.transpose(Y_hat, perm=[2, 1, 0])
+        Y_true = tf.transpose(Y_true, perm=[2, 1, 0])
+
+        loss = 0
+        for t in range(t_x):
+            loss += loss_fn(Y_true[t], Y_hat[t])
+
+        loss = loss / t_x
+
+        return loss
+
+
+    def cell_forward(self, X, A, params):
+        """
+        Performs a forward pass for a single RNN cell.
+
+        Args:
+            X (tf.Tensor): Input at the current time step, shape (n_x, batch_size).
+            A (tf.Tensor): Hidden state from the previous time step, shape (n_a, batch_size).
+            params (dict): Dictionary containing the model parameters.
+
+        Returns:
+            tuple: A tuple containing:
+                - A_ (tf.Tensor): Updated hidden state, shape (n_a, batch_size).
+                - Y_hat (tf.Tensor): Output prediction, shape (n_y, batch_size).
+                - cache (tuple): Cache containing intermediate values for backpropagation.
+        """
+
+        WA = tf.linalg.matmul(a=params["Waa"], b=A, name="WA forward")
+        WX = tf.linalg.matmul(a=params["Wax"], b=X, name="WX forward")
+
+        A_ = tf.math.tanh(WX + WA + params["ba"], name="A_ forward")
+
+        WY = tf.linalg.matmul(a=params["Wya"], b=A_, name="WY forward")
+        Y_hat = tf.keras.activations.softmax(x=WY + params["by"], axis=0)
+
+        cache = (A_, A, X, params)
+
+        return A_, Y_hat, cache
+
+    def cells_forward(self, X, A0, params):
+        """
+        Performs a forward pass through the entire RNN sequence.
+
+        Args:
+            X (tf.Tensor): Input data, shape (n_x, batch_size, sequence_length).
+            A0 (tf.Variable): Initial hidden state, shape (n_a, batch_size).
+            params (dict): Dictionary containing the model parameters.
+
+        Returns:
+            tuple: A tuple containing:
+                - A (tf.Tensor): Hidden states over the sequence, shape (n_a, batch_size, sequence_length).
+                - Y_hat (tf.Tensor): Output predictions over the sequence, shape (n_y, batch_size, sequence_length).
+                - caches (tuple): A tuple containing the input data and list of caches for each time step.
+        """
 
         caches = []
-        n_x, m, T_x = x.shape
-        n_y, n_a = params["Wya"].shape
+        n_x, m, t_x = X.shape
 
-        a = np.zeros((n_a, m, T_x), dtype=float)
-        y_pred = np.zeros((n_y, m, T_x), dtype=float)
+        A = tf.TensorArray(
+            dtype=tf.float32,
+            size=t_x,
+            clear_after_read=False
+        )
+        Y_hat = tf.TensorArray(
+            dtype=tf.float32,
+            size=t_x,
+            clear_after_read=False
+        )
 
-        a_next = a0
+        A_ = A0
 
-        for t in range(T_x):
+        for t in range(t_x):
 
-            a_next, yt_pred, cache = self.step_forward(
-                xt=x[:, :, t],
-                a_pre=a_next,
+            A_, y_hat, cache = self.cell_forward(
+                X=X[:, :, t],
+                A=A_,
                 params=params
             )
 
-            a[:, :, t] = a_next
-            y_pred[:, :, t] = yt_pred
+            A = A.write(t, A_)
+            Y_hat = Y_hat.write(t, y_hat)
+
             caches.append(cache)
 
-        caches = (caches, x)
+        A = tf.transpose(A.stack(), perm=[1, 2, 0])
+        Y_hat = tf.transpose(Y_hat.stack(), perm=[1, 2, 0])
 
-        return (a, y_pred, caches)
+        caches = (X, caches)
 
-    def compute_cost(self, y, y_pred):
+        return A, Y_hat, caches
 
-        epsilon = 1e-15
-        y_pred = np.clip(y_pred, epsilon, 1. - epsilon)
-        cost = -np.sum(y * np.log(y_pred)) / y.shape[1]
 
-        return cost
 
-    def step_backward(self, dy, grads, cache):
 
-        (at, a_pre, xt, params) = cache
 
-        da_next = self.dsoftmax(
-            dy=dy,
-            at=at,
-            grads=grads,
-            params=params
+    def model(self, X, Y):
+        """
+        Trains the RNN model using the given input data and labels.
+
+        Args:
+            X (np.ndarray): Input data, shape (n_x, batch_size, sequence_length).
+            Y (np.ndarray): Ground truth labels, shape (batch_size, n_y, sequence_length).
+
+        Returns:
+            tuple: A tuple containing:
+                - params (dict): Trained model parameters.
+                - costs (list): List of cost values recorded during training.
+        """
+
+
+        costs = []
+        Y = tf.convert_to_tensor(Y)
+        optimizer = tf.keras.optimizers.Adam(
+            learning_rate=self.learning_rate,
+            weight_decay=self.weight_decay
         )
-        dtanh = self.dtanh(da_next=da_next, at=at)
-        d_xt = np.dot(params["Wax"].T, dtanh)
-        dWax = np.dot(dtanh, xt.T)
-        da_prev = np.dot(params["Waa"].T, dtanh)
-        dWaa = np.dot(dtanh, a_pre.T)
-        dba = np.sum(dtanh, axis=1, keepdims=True)
 
-        grads = {
-            "dxt": d_xt,
-            "da_prev": da_prev,
-            "dWax": dWax,
-            "dWaa": dWaa,
-            "dba": dba
-        }
+        n_x, m, t_x = X.shape
+        _, n_y = Y.shape
+        n_a = self.num_hidden_units
 
-        return grads
+        params, A0 = self.initialize_params(
+            n_a=n_a,
+            n_x=n_x,
+            n_y=n_y,
+            m=m
+        )
 
+        for i in range(self.epochs):
+            with tf.GradientTape() as tape:
 
+                A0.assign(tf.zeros_like(A0))
 
-    def backward_propagation(self, X, Y, params, caches):
+                A, Y_hat, caches = self.cells_forward(
+                    X=X,
+                    A0=A0,
+                    params=params
+                )
+                cost = self.compute_cost(
+                    Y_true=Y,
+                    Y_hat=Y_hat,
+                    t_x=t_x
+                )
+                costs.append(cost)
 
-        grads = {}
-        (caches, x) = caches
-        (a1, a0, x1, params) = caches[0]
+            print(f"Epoch {i + 1}/{self.epochs}, Cost: {cost}")
 
-        grads["dWax"] = np.zeros_like(params["Wax"])
-        grads["dWaa"] = np.zeros_like(params["Waa"])
-        grads["dWya"] = np.zeros_like(params["Wya"])
-        grads["dba"] = np.zeros_like(params["ba"])
-        grads["dby"] = np.zeros_like(params["by"])
-        grads["da_next"] = np.zeros_like(a1)
-
-        for t in reversed(range(len(X))):
-
-            dy = np.copy(y_hat[t])
-            dy[Y[t]] -= 1
-            gradients = self.step_backward(dy, grads, params, x[t], a[t], a[t - 1])
+            variables = list(params.values()) + [A0]
+            gradients = tape.gradient(cost, variables)
+            optimizer.apply_gradients(zip(gradients, variables))
 
 
+        return params, costs
 
-        return grads
+
+
+
+
 
 
 
