@@ -176,7 +176,7 @@ class RNN:
 
 
 
-    def model(self, X, Y):
+    def rrn_model(self, X, Y):
         """
         Trains the RNN model using the given input data and labels.
 

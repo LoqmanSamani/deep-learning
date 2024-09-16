@@ -48,6 +48,8 @@ Each model is implemented from scratch, with some also leveraging TensorFlow for
 
 Feel free to explore the models, and consider adapting them to your own projects and datasets.
 
+Certainly! Here's the updated table with the addition of the LSTM model:
+
 | Model                                                                                                                      | Description                                                                                                                                                                                                                                                                                                                                                                  |
 |----------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [**Logistic_Regression_1**](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/image_recognition1.py) | A simple logistic regression model for image recognition, implemented from scratch using NumPy. This model is a basic classification model used as an introduction to deep learning concepts.                                                                                                                                                                                |
@@ -64,6 +66,11 @@ Feel free to explore the models, and consider adapting them to your own projects
 | [**ResNet_50**](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/ResNet.py)                         | An implementation of a very deep convolutional neural network using Residual Networks (ResNet50), based on the paper by K. He et al. (2015). The model is implemented using TensorFlow and is designed to address the vanishing gradient problem in deep networks.                                                                                                           |
 | [**U-Net**](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/u_net.py)                              | An implementation of the U-Net architecture, based on the paper "U-Net: Convolutional Networks for Biomedical Image Segmentation" by O. Ronneberger et al. (2015). This model is implemented using TensorFlow and is designed for image segmentation tasks, particularly in the biomedical field.                                                                            |
 | [**RNN**](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/RNN.py)                                  | A recurrent neural network (RNN) implemented using TensorFlow. This model is designed for sequence prediction tasks and includes methods for initializing parameters, performing forward passes through the RNN cells, and training the model with gradient descent and Adam optimization. It demonstrates how to handle time-series data and learn temporal patterns.       |
+| [**LSTM**](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/models/LSTM.py)                                | An implementation of a Long Short-Term Memory (LSTM) network for sequence prediction tasks. The model is designed to handle time-series data and learn temporal dependencies. It includes methods for initializing parameters, performing forward passes through LSTM cells, and training with gradient descent and Adam optimization.                                                              |
+
+
+
+
 
 
 This project is licensed under the [MIT LICENSE](https://github.com/LoqmanSamani/deep-learning/blob/systembiology/LICENSE)
