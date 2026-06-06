@@ -1,0 +1,103 @@
+========================================================================
+                       yt-dlp Downloader (ytd.py)
+                            USAGE TUTORIAL
+========================================================================
+
+This tutorial explains how to use the 'ytd.py' command-line script to 
+download audio or video directly from YouTube.
+
+------------------------------------------------------------------------
+1. PREREQUISITES
+------------------------------------------------------------------------
+Before using the script, ensure you have the required dependencies installed:
+
+A. Python 3
+   Make sure Python is installed on your system. You can check by running:
+   python --version  (or python3 --version)
+
+B. yt-dlp
+   The core library that handles the downloading. Install it via terminal:
+   pip install --break-system-packages yt-dlp
+
+C. FFmpeg (Crucial for Audio Extraction)
+   The script relies on FFmpeg to convert downloads into MP3, WAV, etc.
+   - macOS:   brew install ffmpeg
+   - Ubuntu:  sudo apt update && sudo apt install ffmpeg
+   - Windows: Download binaries from ffmpeg.org and add them to your PATH.
+
+------------------------------------------------------------------------
+2. BASIC USAGE (THE DEFAULT MODE)
+------------------------------------------------------------------------
+By default, the script is optimized to download the highest quality audio 
+and convert it into an MP3 file, saving it directly to your ~/Downloads folder.
+
+To download an MP3 using defaults, run:
+  python ytd.py "YOUR_YOUTUBE_URL"
+
+Example:
+  python ytd.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+------------------------------------------------------------------------
+3. ADVANCED USAGE & FLAGS
+------------------------------------------------------------------------
+You can customize your download by passing specific flags to the script.
+
+A. Changing Mode (--mode)
+   Choose whether you want to download audio or video.
+   Options: audio, video [Default: audio]
+
+   Example (Download video instead of audio):
+   python ytd.py "YOUR_YOUTUBE_URL" --mode video
+
+B. Changing Audio Format (--audio-format)
+   If downloading audio, you can specify your preferred container/codec.
+   Options: mp3, m4a, opus, vorbis, wav, flac [Default: mp3]
+
+   Example (Download audio as a lossless WAV file):
+   python ytd.py "YOUR_YOUTUBE_URL" --audio-format wav
+
+C. Changing Video Quality (--quality)
+   If downloading video, you can limit the maximum vertical resolution.
+   Options: 360, 480, 720, 1080, 1440, 2160 [Default: 1080]
+
+   Example (Download video at 720p maximum resolution):
+   python ytd.py "YOUR_YOUTUBE_URL" --mode video --quality 720
+
+D. Specifying Output Directory (-o or --output)
+   Redirect the final file to a directory of your choosing.
+   Options: Any valid path string [Default: ~/Downloads]
+
+   Example (Save the download to your Desktop):
+   python ytd.py "YOUR_YOUTUBE_URL" -o ~/Desktop
+
+------------------------------------------------------------------------
+4. COMBINING FLAGS (REAL-WORLD EXAMPLES)
+------------------------------------------------------------------------
+
+* Download high-quality 1080p MP4 video to your Movies folder:
+  python ytd.py "YOUR_YOUTUBE_URL" --mode video --quality 1080 -o ~/Movies
+
+* Download audio in OGG Vorbis format straight to your Music folder:
+  python ytd.py "YOUR_YOUTUBE_URL" --mode audio --audio-format vorbis -o ~/Music
+
+------------------------------------------------------------------------
+5. HOW TO CHANGE PERMANENT DEFAULTS
+------------------------------------------------------------------------
+If you do not want to type the output path or video quality every time, 
+open 'ytd.py' in a text editor and locate the arguments block at the 
+bottom of the file (inside the main() function).
+
+To change the default download folder permanently, edit this line:
+  default="~/Downloads",  --> change to e.g. default="~/Desktop",
+
+To change the default video resolution permanently, edit this line:
+  default="1080",        --> change to e.g. default="720",
+
+------------------------------------------------------------------------
+6. GETTING HELP
+------------------------------------------------------------------------
+You can always view the built-in manual and examples directly from your 
+terminal by running:
+
+  python ytd.py --help
+========================================================================
